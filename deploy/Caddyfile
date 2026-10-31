@@ -1,0 +1,15 @@
+{
+	admin off
+	auto_https off
+}
+
+push.getvalence.app:443 {
+	tls /etc/caddy/origin.pem /etc/caddy/origin.key
+	request_body {
+		max_size 8KB
+	}
+	log {
+		output discard
+	}
+	reverse_proxy 127.0.0.1:8080
+}

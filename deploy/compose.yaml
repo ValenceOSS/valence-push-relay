@@ -1,0 +1,21 @@
+services:
+  relay:
+    image: ghcr.io/valenceoss/valence-push-relay:latest
+    restart: unless-stopped
+    env_file: relay.env
+    environment:
+      APPLE_KEY_FILE: /secrets/apple.p8
+      FIREBASE_SERVICE_ACCOUNT_FILE: /secrets/firebase.json
+      REVOKED_FILE: /secrets/revoked.txt
+    volumes:
+      - ./secrets:/secrets:ro
+    ports:
+      - '127.0.0.1:8080:8080'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'

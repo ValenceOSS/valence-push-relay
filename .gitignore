@@ -1,0 +1,7 @@
+node_modules/
+dist/
+secrets/
+.env
+*.p8
+*.pem
+*.key
