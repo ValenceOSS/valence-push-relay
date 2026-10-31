@@ -4,7 +4,7 @@
 }
 
 push.getvalence.app:443 {
-	tls /etc/caddy/origin.pem /etc/caddy/origin.key
+	tls /etc/caddy/origin/origin.pem /etc/caddy/origin/origin.key
 	request_body {
 		max_size 8KB
 	}
