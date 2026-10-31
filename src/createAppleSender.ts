@@ -18,6 +18,16 @@ const AppleRefusalSchema = z.object({ reason: z.string() });
 
 const GONE = new Set(['BadDeviceToken', 'Unregistered', 'DeviceTokenNotForTopic']);
 
+const OUR_FAULT = new Set([
+  'ExpiredProviderToken',
+  'InvalidProviderToken',
+  'MissingProviderToken',
+  'BadEnvironmentKeyIdInToken',
+  'BadEnvironmentKeyInToken',
+  'TopicDisallowed',
+  'Forbidden',
+]);
+
 type AppleSenderOptions = {
   key: AppleKey;
   send?: typeof sendOverHttp2;
@@ -90,16 +100,18 @@ const createAppleSender = ({
       return 'sent';
     }
 
-    if (answered.status === 403) {
-      token = null;
-    }
-
     const refusal = AppleRefusalSchema.safeParse(readJson(answered.body));
     const reason = refusal.success ? refusal.data.reason : '';
 
+    if (answered.status === 403 || OUR_FAULT.has(reason)) {
+      token = null;
+
+      return 'failed';
+    }
+
     return answered.status === 410 || GONE.has(reason)
       ? 'gone'
-      : answered.status >= 500 || answered.status === 429 || answered.status === 403
+      : answered.status >= 500 || answered.status === 429
         ? 'failed'
         : 'refused';
   };

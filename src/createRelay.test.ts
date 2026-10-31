@@ -7,6 +7,8 @@ const KEY = 'k'.repeat(32);
 
 const TOKEN = 'a'.repeat(64);
 
+const ANDROID_TOKEN = 'f'.repeat(80);
+
 /**
  * A relay for a test, with senders that remember what they were asked.
  *
@@ -88,7 +90,7 @@ describe('createRelay', () => {
 
     const answered = await push(relay, credential, {
       platform: 'android',
-      token: TOKEN,
+      token: ANDROID_TOKEN,
       deliveryId: 'n-1',
       title: 'Your film is ready',
     });
@@ -122,7 +124,7 @@ describe('createRelay', () => {
   it('sends a delivery once, however often a server asks', async () => {
     const { relay, android } = aRelay();
     const { credential } = await register(relay);
-    const asked = { platform: 'android', token: TOKEN, deliveryId: 'n-1' };
+    const asked = { platform: 'android', token: ANDROID_TOKEN, deliveryId: 'n-1' };
 
     await push(relay, credential, asked);
     const again = await push(relay, credential, asked);
@@ -141,6 +143,16 @@ describe('createRelay', () => {
     expect((await push(relay, credential, asked)).status).toBe(410);
   });
 
+  it('refuses a token that is not the shape its platform’s are', async () => {
+    const { relay } = aRelay();
+    const { credential } = await register(relay);
+
+    expect(
+      (await push(relay, credential, { platform: 'apple', token: 'z'.repeat(64), deliveryId: 'n' }))
+        .status,
+    ).toBe(400);
+  });
+
   it('limits how often one address registers and one phone is woken', async () => {
     const { relay } = aRelay();
     const { credential } = await register(relay);
@@ -157,13 +169,42 @@ describe('createRelay', () => {
     ).toBe(429);
 
     for (const deliveryId of ['a', 'b', 'c']) {
-      await push(relay, credential, { platform: 'android', token: TOKEN, deliveryId });
+      await push(relay, credential, { platform: 'android', token: ANDROID_TOKEN, deliveryId });
     }
 
     expect(
-      (await push(relay, credential, { platform: 'android', token: TOKEN, deliveryId: 'd' }))
-        .status,
+      (
+        await push(relay, credential, {
+          platform: 'android',
+          token: ANDROID_TOKEN,
+          deliveryId: 'd',
+        })
+      ).status,
     ).toBe(429);
+  });
+
+  it('counts each server’s turns at a phone apart, so one cannot keep another’s away', async () => {
+    const { relay } = aRelay();
+    const rogue = await register(relay);
+    const honest = await register(relay);
+
+    for (const deliveryId of ['a', 'b', 'c', 'd']) {
+      await push(relay, rogue.credential, {
+        platform: 'android',
+        token: ANDROID_TOKEN,
+        deliveryId,
+      });
+    }
+
+    expect(
+      (
+        await push(relay, honest.credential, {
+          platform: 'android',
+          token: ANDROID_TOKEN,
+          deliveryId: 'real',
+        })
+      ).status,
+    ).toBe(200);
   });
 
   it('renews a credential for the same server', async () => {

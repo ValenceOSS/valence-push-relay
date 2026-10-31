@@ -68,6 +68,25 @@ describe('createAppleSender', () => {
     expect(await createAppleSender({ key: KEY, send })(PUSH)).toBe('gone');
   });
 
+  it('signs a fresh token where Apple says the last one has run out', async () => {
+    const send = vi
+      .fn<typeof sendOverHttp2>()
+      .mockResolvedValueOnce({
+        status: 403,
+        body: JSON.stringify({ reason: 'ExpiredProviderToken' }),
+      })
+      .mockResolvedValue({ status: 200, body: '' });
+    let now = 0;
+    const sender = createAppleSender({ key: KEY, send, now: () => now });
+
+    expect(await sender(PUSH)).toBe('failed');
+
+    now = 1000;
+
+    expect(await sender(PUSH)).toBe('sent');
+    expect(send.mock.calls[1]?.[1].authorization).not.toBe(send.mock.calls[0]?.[1].authorization);
+  });
+
   it('says it failed where Apple could not be reached', async () => {
     const send = vi.fn<typeof sendOverHttp2>(() => Promise.reject(new Error('offline')));
 

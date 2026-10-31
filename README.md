@@ -57,8 +57,9 @@ A credential lasts 90 days and is sent as `Authorization: Bearer <credential>`. 
 `200` when sent or already sent, `410` when the phone's token is gone and should be forgotten, `422`
 when Apple or Google refused it, `429` when rate limited and `502` when they could not be reached.
 
-Limits: 10 registrations an hour from one address, 600 pushes a minute from one server, 30 a minute
-to one phone.
+Limits: 10 registrations an hour from one address, 600 pushes a minute from one server, and 10 a
+minute from one server to one phone. Each server's turns at a phone are counted apart, so one
+server cannot use up another's and keep its notifications away.
 
 ## Running it
 

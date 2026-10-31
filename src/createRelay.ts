@@ -29,8 +29,9 @@ const addressOf = (context: Context): string =>
  * more can be sent through it by mistake. A credential is a signed statement rather than a record,
  * so the relay keeps nothing about a server but the list of those it has turned away.
  *
- * Asking is limited: registering per address, pushing per server and per phone. A delivery is sent
- * once even if a server unsure whether it went asks again within a day.
+ * Asking is limited: registering per address, pushing per server, and pushing to each phone per
+ * server — so one server cannot use up another's turns at a phone and keep its notifications away.
+ * A delivery is sent once even if a server unsure whether it went asks again within a day.
  *
  * @param options - The signing keys, the turned-away servers, the senders, and the limits.
  * @returns The application.
@@ -44,7 +45,7 @@ const createRelay = ({
   renewableForMs = 30 * DAY_MS,
   registrationsPerHour = 10,
   pushesPerMinute = 600,
-  pushesPerDevicePerMinute = 30,
+  pushesPerDevicePerMinute = 10,
 }: RelayOptions): Hono => {
   const app = new Hono();
   const registering = createRateLimiter(registrationsPerHour, 60 * 60 * 1000, now);
@@ -139,7 +140,10 @@ const createRelay = ({
 
     const device = createHash('sha256').update(push.token).digest('base64url');
 
-    if (!pushing.allows(credential.serverId) || !reaching.allows(device)) {
+    if (
+      !pushing.allows(credential.serverId) ||
+      !reaching.allows(`${credential.serverId}:${device}`)
+    ) {
       return context.json({ error: 'rate_limited' }, 429);
     }
 
