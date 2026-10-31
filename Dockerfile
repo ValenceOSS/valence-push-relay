@@ -8,6 +8,9 @@ COPY src ./src
 RUN pnpm build && pnpm prune --prod
 
 FROM node:24.21.0-alpine
+LABEL org.opencontainers.image.source=https://github.com/ValenceOSS/valence-push-relay
+LABEL org.opencontainers.image.description="Wakes the Valence app on iPhone and Android for self-hosted servers"
+LABEL org.opencontainers.image.licenses=MIT
 WORKDIR /relay
 ENV NODE_ENV=production
 COPY --from=build /relay/node_modules ./node_modules
